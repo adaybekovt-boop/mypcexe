@@ -1,0 +1,7 @@
+node_modules/
+out/
+dist/win-unpacked/
+dist/builder-debug.yml
+*.log
+.env
+.DS_Store

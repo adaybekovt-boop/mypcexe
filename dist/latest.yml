@@ -1,0 +1,8 @@
+version: 1.0.0
+files:
+  - url: myPC-Setup-1.0.0.exe
+    sha512: aba2GsYWD9LzOg/Y8ilW1RPUS0Q0Sw1Fj7OvvYfF79iWoDiV9Llb9LrtrPJot9u5EuylVFBeP0woGgKmgwSVCQ==
+    size: 83060227
+path: myPC-Setup-1.0.0.exe
+sha512: aba2GsYWD9LzOg/Y8ilW1RPUS0Q0Sw1Fj7OvvYfF79iWoDiV9Llb9LrtrPJot9u5EuylVFBeP0woGgKmgwSVCQ==
+releaseDate: '2026-06-17T15:16:56.230Z'
