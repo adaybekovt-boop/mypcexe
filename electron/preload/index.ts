@@ -19,6 +19,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateConfig: (data: { password?: string; serverUrl: string }) =>
     ipcRenderer.invoke('update-config', data),
 
+  getPairingCode: (): Promise<{ code: string; expiresAt: number }> =>
+    ipcRenderer.invoke('get-pairing-code'),
+
   unlock: (password: string): Promise<{ success: boolean }> =>
     ipcRenderer.invoke('unlock', password),
 

@@ -2,16 +2,6 @@ import { useEffect, useState } from 'react'
 import { AlertCircle, Check, Copy, Eye, EyeOff, Loader2, Shield } from 'lucide-react'
 import { clsx } from 'clsx'
 
-declare global {
-  interface Window {
-    electronAPI: {
-      getDeviceCode(): Promise<string>
-      saveConfig(data: { password: string; serverUrl: string }): Promise<void>
-      minimize(): void
-    }
-  }
-}
-
 type Status = { type: 'error' | 'success'; msg: string } | null
 
 export default function Setup() {
@@ -81,11 +71,11 @@ export default function Setup() {
               <Shield className="w-6 h-6 text-accent" />
             </div>
             <h1 className="text-xl font-semibold text-white">Настройка myPC</h1>
-            <p className="text-sm text-white/40">Первый запуск - настройте защиту</p>
+            <p className="text-sm text-white/40">Сначала сохраните защиту, затем привяжите Telegram одноразовым кодом</p>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Код устройства</label>
+            <label className="text-xs font-medium text-white/50 uppercase tracking-wider">ID устройства</label>
             <div className="flex items-center gap-2 bg-surface rounded-xl px-4 py-3 border border-white/5">
               <span className="flex-1 font-mono text-base text-accent font-semibold tracking-widest">{deviceCode}</span>
               <button
@@ -96,7 +86,7 @@ export default function Setup() {
                 {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-xs text-white/30">После сохранения отправьте этот код боту в Telegram.</p>
+            <p className="text-xs text-white/30">Этот ID не даёт доступ сам по себе. Для Telegram нужен одноразовый код из приложения.</p>
           </div>
 
           <div className="space-y-1.5">
@@ -117,7 +107,7 @@ export default function Setup() {
                 Вставить
               </button>
             </div>
-            <p className="text-xs text-white/30">Отправьте /start боту в Telegram - он пришлет URL сервера.</p>
+            <p className="text-xs text-white/30">Отправьте /start боту в Telegram - он пришлёт URL сервера.</p>
           </div>
 
           <div className="space-y-1.5">

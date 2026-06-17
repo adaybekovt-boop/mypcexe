@@ -1,6 +1,6 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, screen, Tray } from 'electron'
+import { app, BrowserWindow, dialog, globalShortcut, ipcMain, Menu, nativeImage, screen, Tray } from 'electron'
 import { execSync } from 'child_process'
-import { createHash } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 import { join } from 'path'
 import { hostname, networkInterfaces } from 'os'
 import * as bcrypt from 'bcryptjs'
@@ -19,6 +19,7 @@ if (!singleInstanceLock) {
 
 interface Config {
   deviceCode: string
+  deviceSecret: string
   passwordHash: string
   serverUrl: string
 }
@@ -32,6 +33,7 @@ let pollingTimer: ReturnType<typeof setInterval> | null = null
 let chatId: number | null = null
 let isLocked = false
 let startupNotified = false
+let pairingRequestId: string | null = null
 let recoveryCode: string | null = null
 let recoveryExpiry = 0
 
@@ -44,6 +46,17 @@ function currentConfigView() {
     protectionActive: Boolean(config) && !isLocked,
     chatLinked: Boolean(chatId),
   }
+}
+
+function ensureDeviceSecret(config: Config): Config {
+  if (config.deviceSecret) return config
+
+  const migrated = {
+    ...config,
+    deviceSecret: randomBytes(32).toString('hex'),
+  }
+  store.set('config', migrated)
+  return migrated
 }
 
 function getDeviceCode(): string {
@@ -61,16 +74,26 @@ function getDeviceCode(): string {
   return `${hex.slice(0, 4)}-${hex.slice(4, 8)}`
 }
 
-async function apiGet(url: string): Promise<Record<string, unknown>> {
-  const r = await fetch(url, { signal: AbortSignal.timeout(8000) })
+function authHeaders(config: Config) {
+  return { 'x-device-secret': config.deviceSecret }
+}
+
+async function apiGet(url: string, config?: Config): Promise<Record<string, unknown>> {
+  const r = await fetch(url, {
+    headers: config ? authHeaders(config) : undefined,
+    signal: AbortSignal.timeout(8000),
+  })
   if (!r.ok) throw new Error(`HTTP ${r.status}`)
   return r.json() as Promise<Record<string, unknown>>
 }
 
-async function apiPost(url: string, body?: unknown): Promise<Record<string, unknown>> {
+async function apiPost(url: string, body?: unknown, config?: Config): Promise<Record<string, unknown>> {
   const r = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(config ? authHeaders(config) : {}),
+    },
     body: body === undefined ? undefined : JSON.stringify(body),
     signal: AbortSignal.timeout(8000),
   })
@@ -78,23 +101,60 @@ async function apiPost(url: string, body?: unknown): Promise<Record<string, unkn
   return r.json() as Promise<Record<string, unknown>>
 }
 
+async function registerDevice(config: Config) {
+  const data = await apiPost(
+    `${config.serverUrl}/api/device/${config.deviceCode}/register`,
+    { deviceSecret: config.deviceSecret },
+    config
+  )
+  if (typeof data.chat_id === 'number') {
+    chatId = data.chat_id
+  }
+}
+
 async function notifyStartup(config: Config) {
   if (startupNotified) return
   startupNotified = true
   try {
-    await apiPost(`${config.serverUrl}/api/startup/${config.deviceCode}`)
+    await apiPost(`${config.serverUrl}/api/startup/${config.deviceCode}`, undefined, config)
   } catch {
     startupNotified = false
   }
 }
 
+async function handlePairingRequest(config: Config) {
+  const data = await apiGet(`${config.serverUrl}/api/pairing/${config.deviceCode}`, config)
+  const request = data.request as { id?: string; username?: string; chat_id?: number } | null
+  if (!request?.id || request.id === pairingRequestId) return
+
+  pairingRequestId = request.id
+  const requester = request.username || `Telegram ${request.chat_id ?? ''}`.trim()
+  const result = await dialog.showMessageBox({
+    type: 'question',
+    buttons: ['Разрешить', 'Отклонить'],
+    defaultId: 1,
+    cancelId: 1,
+    title: 'Запрос доступа myPC',
+    message: 'Разрешить доступ к этому компьютеру?',
+    detail: `Запрос от: ${requester}\nУстройство: ${config.deviceCode}`,
+    noLink: true,
+  })
+
+  const decision = result.response === 0 ? 'approve' : 'deny'
+  await apiPost(`${config.serverUrl}/api/pairing/${config.deviceCode}/${request.id}`, { decision }, config)
+  pairingRequestId = null
+  chatId = null
+}
+
 async function startPolling(config: Config) {
+  config = ensureDeviceSecret(config)
   const { serverUrl, deviceCode } = config
 
   if (pollingTimer) clearInterval(pollingTimer)
 
   try {
-    const data = await apiGet(`${serverUrl}/api/device/${deviceCode}`)
+    await registerDevice(config)
+    const data = await apiGet(`${serverUrl}/api/device/${deviceCode}`, config)
     if (typeof data.chat_id === 'number') {
       chatId = data.chat_id
       await notifyStartup(config)
@@ -107,15 +167,22 @@ async function startPolling(config: Config) {
     if (isLocked) return
 
     try {
-      const data = await apiGet(`${serverUrl}/api/command/${deviceCode}`)
+      const data = await apiGet(`${serverUrl}/api/command/${deviceCode}`, config)
       if (data.command === 'lock') showLockScreen()
+    } catch {
+      // Ignore transient network errors.
+    }
+
+    try {
+      await handlePairingRequest(config)
     } catch {
       // Ignore transient network errors.
     }
 
     if (!chatId) {
       try {
-        const data = await apiGet(`${serverUrl}/api/device/${deviceCode}`)
+        await registerDevice(config)
+        const data = await apiGet(`${serverUrl}/api/device/${deviceCode}`, config)
         if (typeof data.chat_id === 'number') {
           chatId = data.chat_id
           await notifyStartup(config)
@@ -171,7 +238,7 @@ function createAppWindow(hash: 'setup' | 'dashboard' = 'dashboard') {
 
   setupWin = new BrowserWindow({
     width: 460,
-    height: 640,
+    height: 680,
     resizable: false,
     frame: false,
     transparent: false,
@@ -276,9 +343,11 @@ ipcMain.handle('get-config', () => currentConfigView())
 
 ipcMain.handle('save-config', async (_, data: { password: string; serverUrl: string }) => {
   const deviceCode = getDeviceCode()
+  const deviceSecret = randomBytes(32).toString('hex')
   const passwordHash = bcrypt.hashSync(data.password, 10)
   const config: Config = {
     deviceCode,
+    deviceSecret,
     passwordHash,
     serverUrl: data.serverUrl.replace(/\/$/, ''),
   }
@@ -307,6 +376,7 @@ ipcMain.handle('update-config', async (_, data: { password?: string; serverUrl: 
 
   const config: Config = {
     deviceCode,
+    deviceSecret: current?.deviceSecret || randomBytes(32).toString('hex'),
     passwordHash,
     serverUrl: data.serverUrl.replace(/\/$/, ''),
   }
@@ -315,6 +385,19 @@ ipcMain.handle('update-config', async (_, data: { password?: string; serverUrl: 
   startupNotified = false
   await startPolling(config)
   return currentConfigView()
+})
+
+ipcMain.handle('get-pairing-code', async () => {
+  const config = store.get('config')
+  if (!config) throw new Error('Сначала сохраните настройки myPC')
+
+  const current = ensureDeviceSecret(config)
+  await registerDevice(current)
+  const data = await apiPost(`${current.serverUrl}/api/pairing-code/${current.deviceCode}`, undefined, current)
+  return {
+    code: String(data.code ?? ''),
+    expiresAt: Number(data.expires_at ?? 0),
+  }
 })
 
 ipcMain.handle('unlock', async (_, password: string) => {
@@ -335,12 +418,13 @@ ipcMain.handle('unlock', async (_, password: string) => {
 ipcMain.handle('forgot-password', async () => {
   const config = store.get('config')
   if (!config || !chatId) return
+  const current = ensureDeviceSecret(config)
 
   recoveryCode = String(Math.floor(100000 + Math.random() * 900000))
   recoveryExpiry = Date.now() + 5 * 60 * 1000
 
   try {
-    await apiPost(`${config.serverUrl}/api/recovery/${config.deviceCode}`, { code: recoveryCode })
+    await apiPost(`${current.serverUrl}/api/recovery/${current.deviceCode}`, { code: recoveryCode }, current)
   } catch {
     recoveryCode = null
     throw new Error('Не удалось отправить код восстановления')
@@ -360,7 +444,7 @@ app.whenReady().then(async () => {
   if (!config) {
     createAppWindow('setup')
   } else {
-    await startPolling(config)
+    await startPolling(ensureDeviceSecret(config))
     createAppWindow('dashboard')
   }
 })

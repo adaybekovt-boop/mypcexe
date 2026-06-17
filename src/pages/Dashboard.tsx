@@ -2,30 +2,14 @@ import { useEffect, useState } from 'react'
 import { CheckCircle2, Copy, Eye, EyeOff, Loader2, RefreshCw, Shield, XCircle } from 'lucide-react'
 import { clsx } from 'clsx'
 
-type ConfigView = {
-  configured: boolean
-  deviceCode: string
-  serverUrl: string
-  protectionActive: boolean
-  chatLinked: boolean
-}
-
-declare global {
-  interface Window {
-    electronAPI: {
-      getConfig(): Promise<ConfigView>
-      updateConfig(data: { password?: string; serverUrl: string }): Promise<ConfigView>
-      minimize(): void
-    }
-  }
-}
-
 export default function Dashboard() {
-  const [config, setConfig] = useState<ConfigView | null>(null)
+  const [config, setConfig] = useState<MyPcConfigView | null>(null)
   const [serverUrl, setServerUrl] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [pairing, setPairing] = useState<MyPcPairingCode | null>(null)
+  const [pairingLoading, setPairingLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   const load = async () => {
@@ -65,6 +49,19 @@ export default function Dashboard() {
     setSaving(false)
   }
 
+  const createPairingCode = async () => {
+    setPairingLoading(true)
+    setMessage(null)
+    try {
+      const next = await window.electronAPI.getPairingCode()
+      setPairing(next)
+      await copy(next.code)
+    } catch (e: any) {
+      setMessage(e?.message ?? 'Не удалось получить код привязки')
+    }
+    setPairingLoading(false)
+  }
+
   if (!config) {
     return (
       <div className="h-full bg-base flex items-center justify-center text-white/50">
@@ -91,7 +88,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div className="flex-1 px-8 pb-6 pt-4 space-y-5">
+      <div className="flex-1 px-8 pb-6 pt-4 space-y-4">
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent/10">
             <Shield className="w-7 h-7 text-accent" />
@@ -115,12 +112,12 @@ export default function Dashboard() {
               {config.chatLinked ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
               <span className="text-sm font-medium">Telegram</span>
             </div>
-            <p className="text-xs text-white/35 mt-1">{config.chatLinked ? 'Привязан' : 'Ждет код'}</p>
+            <p className="text-xs text-white/35 mt-1">{config.chatLinked ? 'Привязан' : 'Не привязан'}</p>
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Код устройства</label>
+          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">ID устройства</label>
           <div className="flex items-center gap-2 bg-surface rounded-xl px-4 py-3 border border-white/5">
             <span className="flex-1 font-mono text-base text-accent font-semibold tracking-widest">{config.deviceCode}</span>
             <button
@@ -131,6 +128,33 @@ export default function Dashboard() {
               <Copy className="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        <div className="space-y-2 bg-surface border border-white/5 rounded-xl p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-white">Одноразовый код Telegram</p>
+              <p className="text-xs text-white/35">Действует 10 минут и требует подтверждения на ПК</p>
+            </div>
+            <button
+              onClick={createPairingCode}
+              disabled={pairingLoading}
+              className="px-3 py-2 bg-accent hover:bg-accent/80 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-colors flex items-center gap-2"
+            >
+              {pairingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Получить
+            </button>
+          </div>
+          {pairing && (
+            <button
+              onClick={() => copy(pairing.code)}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-accent"
+              title="Скопировать код"
+            >
+              <span className="font-mono text-2xl font-bold tracking-[0.28em]">{pairing.code}</span>
+              <Copy className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         <div className="space-y-1.5">

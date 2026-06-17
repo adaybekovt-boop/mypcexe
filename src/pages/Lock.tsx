@@ -2,15 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Eye, EyeOff, KeyRound, Loader2, Lock } from 'lucide-react'
 import { clsx } from 'clsx'
 
-declare global {
-  interface Window {
-    electronAPI: {
-      unlock(password: string): Promise<{ success: boolean }>
-      forgotPassword(): Promise<void>
-    }
-  }
-}
-
 export default function LockScreen() {
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
