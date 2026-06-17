@@ -13,11 +13,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     serverUrl: string
     protectionActive: boolean
     chatLinked: boolean
+    appVersion: string
   }> =>
     ipcRenderer.invoke('get-config'),
 
   updateConfig: (data: { password?: string; serverUrl: string }) =>
     ipcRenderer.invoke('update-config', data),
+
+  checkForUpdates: (): Promise<{ status: string; message: string }> =>
+    ipcRenderer.invoke('check-for-updates'),
 
   getPairingCode: (): Promise<{ code: string; expiresAt: number }> =>
     ipcRenderer.invoke('get-pairing-code'),

@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [saving, setSaving] = useState(false)
   const [pairing, setPairing] = useState<MyPcPairingCode | null>(null)
   const [pairingLoading, setPairingLoading] = useState(false)
+  const [updateLoading, setUpdateLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
   const load = async () => {
@@ -62,6 +63,18 @@ export default function Dashboard() {
     setPairingLoading(false)
   }
 
+  const checkUpdates = async () => {
+    setUpdateLoading(true)
+    setMessage('Проверяю обновления...')
+    try {
+      const result = await window.electronAPI.checkForUpdates()
+      setMessage(result.message)
+    } catch (e: any) {
+      setMessage(e?.message ?? 'Не удалось проверить обновления')
+    }
+    setUpdateLoading(false)
+  }
+
   if (!config) {
     return (
       <div className="h-full bg-base flex items-center justify-center text-white/50">
@@ -105,7 +118,7 @@ export default function Dashboard() {
               <CheckCircle2 className="w-4 h-4" />
               <span className="text-sm font-medium">Agent</span>
             </div>
-            <p className="text-xs text-white/35 mt-1">Запущен</p>
+            <p className="text-xs text-white/35 mt-1">Версия {config.appVersion}</p>
           </div>
           <div className="bg-surface border border-white/5 rounded-xl p-4">
             <div className={clsx('flex items-center gap-2', config.chatLinked ? 'text-green-400' : 'text-yellow-400')}>
@@ -114,6 +127,24 @@ export default function Dashboard() {
             </div>
             <p className="text-xs text-white/35 mt-1">{config.chatLinked ? 'Привязан' : 'Не привязан'}</p>
           </div>
+        </div>
+
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <button
+            onClick={checkUpdates}
+            disabled={updateLoading}
+            className="bg-surface hover:bg-white/10 border border-white/5 text-white/70 rounded-xl px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {updateLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Проверить обновления
+          </button>
+          <button
+            onClick={load}
+            className="px-4 bg-surface hover:bg-white/10 border border-white/5 text-white/60 rounded-xl transition-colors"
+            title="Обновить статус"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
         </div>
 
         <div className="space-y-1.5">
@@ -193,23 +224,14 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="flex gap-2">
-          <button
-            onClick={load}
-            className="px-4 bg-surface hover:bg-white/10 border border-white/5 text-white/60 rounded-xl transition-colors"
-            title="Обновить статус"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <button
-            onClick={save}
-            disabled={saving}
-            className="flex-1 bg-accent hover:bg-accent/80 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            Сохранить
-          </button>
-        </div>
+        <button
+          onClick={save}
+          disabled={saving}
+          className="w-full bg-accent hover:bg-accent/80 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          Сохранить
+        </button>
       </div>
     </div>
   )

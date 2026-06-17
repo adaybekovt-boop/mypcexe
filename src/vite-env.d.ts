@@ -6,6 +6,7 @@ type MyPcConfigView = {
   serverUrl: string
   protectionActive: boolean
   chatLinked: boolean
+  appVersion: string
 }
 
 type MyPcPairingCode = {
@@ -19,6 +20,7 @@ interface Window {
     saveConfig(data: { password: string; serverUrl: string }): Promise<void>
     getConfig(): Promise<MyPcConfigView>
     updateConfig(data: { password?: string; serverUrl: string }): Promise<MyPcConfigView>
+    checkForUpdates(): Promise<{ status: string; message: string }>
     getPairingCode(): Promise<MyPcPairingCode>
     unlock(password: string): Promise<{ success: boolean }>
     forgotPassword(): Promise<void>

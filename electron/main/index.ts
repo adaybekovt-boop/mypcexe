@@ -46,6 +46,7 @@ function currentConfigView() {
     serverUrl: config?.serverUrl ?? '',
     protectionActive: Boolean(config) && !isLocked,
     chatLinked: Boolean(chatId),
+    appVersion: app.getVersion(),
   }
 }
 
@@ -225,6 +226,35 @@ function initAutoUpdate() {
   }, 4000)
 }
 
+async function checkForUpdatesNow() {
+  if (isDev) {
+    return {
+      status: 'disabled',
+      message: 'Проверка обновлений работает только в установленной версии myPC.',
+    }
+  }
+
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    const latestVersion = result?.updateInfo?.version
+    if (!latestVersion) {
+      return { status: 'idle', message: 'Обновления не найдены.' }
+    }
+
+    if (latestVersion === app.getVersion()) {
+      return { status: 'idle', message: `У вас последняя версия: ${app.getVersion()}.` }
+    }
+
+    return {
+      status: 'downloading',
+      message: `Найдена версия ${latestVersion}. myPC скачает её и перезапустится для установки.`,
+    }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Неизвестная ошибка'
+    return { status: 'error', message: `Не удалось проверить обновления: ${message}` }
+  }
+}
+
 function createAppWindow(hash: 'setup' | 'dashboard' = 'dashboard') {
   if (setupWin && !setupWin.isDestroyed()) {
     setupWin.show()
@@ -383,6 +413,8 @@ function createTray() {
 ipcMain.handle('get-device-code', () => getDeviceCode())
 
 ipcMain.handle('get-config', () => currentConfigView())
+
+ipcMain.handle('check-for-updates', () => checkForUpdatesNow())
 
 ipcMain.handle('save-config', async (_, data: { password: string; serverUrl: string }) => {
   const deviceCode = getDeviceCode()

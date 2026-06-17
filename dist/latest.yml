@@ -1,8 +1,8 @@
-version: 1.0.4
+version: 1.0.5
 files:
-  - url: myPC-Setup-1.0.4.exe
-    sha512: 6/8N3z3gWg/HcHFdUeUss+uq/heQXUGgVtTkCUkm46iKFHUgwIl+w3rvn5ORLbo4Z8MvYEc5kY3oaBp0jNAz4g==
-    size: 104448206
-path: myPC-Setup-1.0.4.exe
-sha512: 6/8N3z3gWg/HcHFdUeUss+uq/heQXUGgVtTkCUkm46iKFHUgwIl+w3rvn5ORLbo4Z8MvYEc5kY3oaBp0jNAz4g==
-releaseDate: '2026-06-17T17:10:17.085Z'
+  - url: myPC-Setup-1.0.5.exe
+    sha512: JfOxmuhO5vnmshGGzffjXi9NQPVbfR1pwvXIKdqT9HqugWxgOOErb52vNWFZ7qQrY6g764IOUA1O5zR5ovpJcg==
+    size: 104448353
+path: myPC-Setup-1.0.5.exe
+sha512: JfOxmuhO5vnmshGGzffjXi9NQPVbfR1pwvXIKdqT9HqugWxgOOErb52vNWFZ7qQrY6g764IOUA1O5zR5ovpJcg==
+releaseDate: '2026-06-17T17:20:50.046Z'
