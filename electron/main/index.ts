@@ -36,6 +36,7 @@ let startupNotified = false
 let pairingRequestId: string | null = null
 let recoveryCode: string | null = null
 let recoveryExpiry = 0
+let systemLockRequested = false
 
 function currentConfigView() {
   const config = store.get('config')
@@ -266,11 +267,33 @@ function openMainWindow() {
   createAppWindow(store.get('config') ? 'dashboard' : 'setup')
 }
 
+function lockWindowsSession() {
+  if (process.platform !== 'win32') return
+
+  try {
+    execSync('rundll32.exe user32.dll,LockWorkStation', { windowsHide: true })
+  } catch {
+    // If Windows refuses the session lock, the myPC overlay still remains active.
+  }
+}
+
 function showLockScreen() {
   if (isLocked || lockWin) return
   isLocked = true
 
-  ;['Alt+Tab', 'Alt+F4', 'Super+D', 'Super+L', 'Ctrl+Escape'].forEach((sc) => {
+  ;[
+    'Alt+Tab',
+    'Alt+F4',
+    'Alt+Escape',
+    'Super',
+    'Super+D',
+    'Super+E',
+    'Super+L',
+    'Super+R',
+    'Super+Tab',
+    'CommandOrControl+Escape',
+    'Ctrl+Escape',
+  ].forEach((sc) => {
     try {
       globalShortcut.register(sc, () => {})
     } catch {
@@ -288,6 +311,9 @@ function showLockScreen() {
     skipTaskbar: true,
     resizable: false,
     closable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
     backgroundColor: '#0d0d0d',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -297,11 +323,28 @@ function showLockScreen() {
   })
 
   lockWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  lockWin.setAlwaysOnTop(true, 'screen-saver')
+  lockWin.setKiosk(true)
+  lockWin.setMenuBarVisibility(false)
+
+  lockWin.on('blur', () => {
+    if (isLocked && lockWin && !lockWin.isDestroyed()) {
+      lockWin.focus()
+    }
+  })
 
   if (isDev) {
     lockWin.loadURL('http://localhost:5173/#lock')
   } else {
     lockWin.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'lock' })
+  }
+
+  if (!systemLockRequested) {
+    systemLockRequested = true
+    setTimeout(() => {
+      lockWindowsSession()
+      systemLockRequested = false
+    }, 700)
   }
 }
 
