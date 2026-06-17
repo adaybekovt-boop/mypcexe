@@ -10,6 +10,13 @@ import electronUpdaterPkg from 'electron-updater'
 const { autoUpdater } = electronUpdaterPkg
 const isDev = !app.isPackaged
 
+app.disableHardwareAcceleration()
+
+const singleInstanceLock = app.requestSingleInstanceLock()
+if (!singleInstanceLock) {
+  app.quit()
+}
+
 interface Config {
   deviceCode: string
   passwordHash: string
@@ -27,6 +34,17 @@ let isLocked = false
 let startupNotified = false
 let recoveryCode: string | null = null
 let recoveryExpiry = 0
+
+function currentConfigView() {
+  const config = store.get('config')
+  return {
+    configured: Boolean(config),
+    deviceCode: config?.deviceCode ?? getDeviceCode(),
+    serverUrl: config?.serverUrl ?? '',
+    protectionActive: Boolean(config) && !isLocked,
+    chatLinked: Boolean(chatId),
+  }
+}
 
 function getDeviceCode(): string {
   const ifaces = networkInterfaces()
@@ -106,7 +124,7 @@ async function startPolling(config: Config) {
         // Ignore transient network errors.
       }
     }
-  }, 2000)
+  }, 10000)
 }
 
 function registerAutostart(exePath: string) {
@@ -139,7 +157,18 @@ function initAutoUpdate() {
   }, 4000)
 }
 
-function createSetupWindow() {
+function createAppWindow(hash: 'setup' | 'dashboard' = 'dashboard') {
+  if (setupWin && !setupWin.isDestroyed()) {
+    setupWin.show()
+    setupWin.focus()
+    if (!isDev) {
+      setupWin.loadFile(join(__dirname, '../renderer/index.html'), { hash })
+    } else {
+      setupWin.loadURL(`http://localhost:5173/#${hash}`)
+    }
+    return
+  }
+
   setupWin = new BrowserWindow({
     width: 460,
     height: 640,
@@ -154,12 +183,20 @@ function createSetupWindow() {
     },
   })
 
+  setupWin.on('closed', () => {
+    setupWin = null
+  })
+
   if (isDev) {
-    setupWin.loadURL('http://localhost:5173/#setup')
+    setupWin.loadURL(`http://localhost:5173/#${hash}`)
     setupWin.webContents.openDevTools({ mode: 'detach' })
   } else {
-    setupWin.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'setup' })
+    setupWin.loadFile(join(__dirname, '../renderer/index.html'), { hash })
   }
+}
+
+function openMainWindow() {
+  createAppWindow(store.get('config') ? 'dashboard' : 'setup')
 }
 
 function showLockScreen() {
@@ -227,11 +264,15 @@ function createTray() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'myPC - защита активна', enabled: false },
     { type: 'separator' },
+    { label: 'Открыть myPC', click: () => openMainWindow() },
     { label: 'Выйти', click: () => app.quit() },
   ]))
+  tray.on('double-click', () => openMainWindow())
 }
 
 ipcMain.handle('get-device-code', () => getDeviceCode())
+
+ipcMain.handle('get-config', () => currentConfigView())
 
 ipcMain.handle('save-config', async (_, data: { password: string; serverUrl: string }) => {
   const deviceCode = getDeviceCode()
@@ -245,11 +286,35 @@ ipcMain.handle('save-config', async (_, data: { password: string; serverUrl: str
 
   if (!isDev) registerAutostart(app.getPath('exe'))
 
-  if (setupWin) {
-    setupWin.close()
-    setupWin = null
-  }
   await startPolling(config)
+  if (setupWin && !setupWin.isDestroyed()) {
+    if (isDev) {
+      await setupWin.loadURL('http://localhost:5173/#dashboard')
+    } else {
+      await setupWin.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'dashboard' })
+    }
+  }
+})
+
+ipcMain.handle('update-config', async (_, data: { password?: string; serverUrl: string }) => {
+  const current = store.get('config')
+  const deviceCode = current?.deviceCode ?? getDeviceCode()
+  const passwordHash = data.password
+    ? bcrypt.hashSync(data.password, 10)
+    : current?.passwordHash
+
+  if (!passwordHash) throw new Error('Введите пароль')
+
+  const config: Config = {
+    deviceCode,
+    passwordHash,
+    serverUrl: data.serverUrl.replace(/\/$/, ''),
+  }
+  store.set('config', config)
+  chatId = null
+  startupNotified = false
+  await startPolling(config)
+  return currentConfigView()
 })
 
 ipcMain.handle('unlock', async (_, password: string) => {
@@ -293,10 +358,15 @@ app.whenReady().then(async () => {
 
   const config = store.get('config')
   if (!config) {
-    createSetupWindow()
+    createAppWindow('setup')
   } else {
     await startPolling(config)
+    createAppWindow('dashboard')
   }
+})
+
+app.on('second-instance', () => {
+  openMainWindow()
 })
 
 app.on('window-all-closed', () => {
