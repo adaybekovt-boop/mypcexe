@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertCircle, Check, Clipboard, Copy, Eye, EyeOff, Loader2, Shield } from 'lucide-react'
+import { AlertCircle, Check, Clipboard, Copy, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { clsx } from 'clsx'
 import TopBar from '../components/TopBar'
 
@@ -22,7 +22,7 @@ export default function Setup() {
   const copyCode = async () => {
     await navigator.clipboard.writeText(deviceCode)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    setTimeout(() => setCopied(false), 1600)
   }
 
   const pasteUrl = async () => {
@@ -35,9 +35,7 @@ export default function Setup() {
     if (!password) return setStatus({ type: 'error', msg: 'Введите пароль' })
     if (password.length < 4) return setStatus({ type: 'error', msg: 'Минимум 4 символа' })
     if (password !== confirm) return setStatus({ type: 'error', msg: 'Пароли не совпадают' })
-    if (!serverUrl.startsWith('https://')) {
-      return setStatus({ type: 'error', msg: 'URL должен начинаться с https://' })
-    }
+    if (!serverUrl.startsWith('https://')) return setStatus({ type: 'error', msg: 'URL должен начинаться с https://' })
 
     setSaving(true)
     try {
@@ -49,117 +47,113 @@ export default function Setup() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-base bg-grid">
+    <div className="h-full bg-base flex flex-col">
       <TopBar />
 
-      <div className="flex-1 overflow-y-auto px-6 py-5">
-        <div className="w-full max-w-sm mx-auto space-y-5 animate-fade-up">
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent/10 shadow-glow">
-              <Shield className="w-7 h-7 text-accent" />
+      <main className="flex-1 p-5 overflow-y-auto">
+        <section className="rounded-lg border border-line bg-surface p-5 space-y-5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-white/[0.05] flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-accent" />
             </div>
-            <h1 className="text-xl font-semibold text-white">Настройка myPC</h1>
-            <p className="text-sm text-white/40">Задайте пароль и подключите сервер</p>
+            <div>
+              <h1 className="text-lg font-semibold text-white">Настройка myPC</h1>
+              <p className="text-sm text-white/45 mt-1">Подключите сервер и задайте пароль разблокировки.</p>
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-medium text-white/40 uppercase tracking-wider">ID устройства</label>
-            <div className="flex items-center gap-2 bg-surface rounded-xl px-4 py-3 border border-hair">
-              <span className="flex-1 font-mono text-base text-accent font-semibold tracking-widest">{deviceCode}</span>
+          <Field label="ID устройства">
+            <div className="flex items-center gap-2">
+              <code className="flex-1 rounded-md bg-base border border-line px-3 py-2.5 font-mono text-sm text-accent tracking-widest">
+                {deviceCode}
+              </code>
               <button
                 onClick={copyCode}
-                className="p-1.5 rounded-lg hover:bg-white/[0.07] transition-colors text-white/40 hover:text-white"
-                title="Копировать"
+                className="w-10 h-10 rounded-md border border-line text-white/55 hover:text-white hover:bg-white/[0.05] flex items-center justify-center"
               >
                 {copied ? <Check className="w-4 h-4 text-ok" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
-          </div>
+          </Field>
 
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-medium text-white/40 uppercase tracking-wider">URL сервера</label>
+          <Field label="URL сервера Cloudflare">
             <div className="flex gap-2">
               <input
                 type="url"
                 value={serverUrl}
                 onChange={(e) => setServerUrl(e.target.value)}
                 placeholder="https://mypc.xxx.workers.dev"
-                className="flex-1 bg-surface border border-hair rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none focus:border-accent/40 transition-colors"
+                className="flex-1 rounded-md bg-base border border-line px-3 py-2.5 text-sm text-white placeholder:text-white/25 outline-none focus:border-accent"
               />
               <button
                 onClick={pasteUrl}
-                className="px-3 rounded-xl bg-surface border border-hair hover:border-white/20 text-white/40 hover:text-white transition-colors flex items-center justify-center"
                 title="Вставить"
+                className="w-10 h-10 rounded-md border border-line text-white/55 hover:text-white hover:bg-white/[0.05] flex items-center justify-center"
               >
                 <Clipboard className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-xs text-white/30">Отправьте /start боту — он пришлёт URL</p>
-          </div>
+          </Field>
 
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-medium text-white/40 uppercase tracking-wider">Пароль</label>
+          <Field label="Пароль">
             <div className="relative">
               <input
                 type={showPass ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Придумайте пароль"
-                className="w-full bg-surface border border-hair rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder:text-white/20 outline-none focus:border-accent/40 transition-colors"
+                className="w-full rounded-md bg-base border border-line px-3 py-2.5 pr-10 text-sm text-white placeholder:text-white/25 outline-none focus:border-accent"
               />
               <button
                 type="button"
-                onClick={() => setShowPass((p) => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/30 hover:text-white/60 transition-colors"
+                onClick={() => setShowPass((value) => !value)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 text-white/40 hover:text-white"
               >
                 {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-          </div>
+          </Field>
 
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-medium text-white/40 uppercase tracking-wider">Подтвердите пароль</label>
+          <Field label="Подтверждение пароля">
             <input
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Повторите пароль"
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              placeholder="Повторите пароль"
               className={clsx(
-                'w-full bg-surface border rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 outline-none transition-colors',
-                confirm && password !== confirm ? 'border-danger/50 focus:border-danger' : 'border-hair focus:border-accent/40'
+                'w-full rounded-md bg-base border px-3 py-2.5 text-sm text-white placeholder:text-white/25 outline-none',
+                confirm && password !== confirm ? 'border-danger focus:border-danger' : 'border-line focus:border-accent'
               )}
             />
-          </div>
+          </Field>
 
-          {status && (
-            <div
-              className={clsx(
-                'flex items-center gap-2 text-sm px-4 py-3 rounded-xl animate-fade-up',
-                status.type === 'error' ? 'bg-danger/10 text-danger' : 'bg-ok/10 text-ok'
-              )}
-            >
-              <AlertCircle className="w-4 h-4 shrink-0" />
+          {status ? (
+            <div className={clsx('rounded-md px-3 py-2.5 text-sm flex items-center gap-2', status.type === 'error' ? 'bg-danger/10 text-danger' : 'bg-ok/10 text-ok')}>
+              <AlertCircle className="w-4 h-4" />
               {status.msg}
             </div>
-          )}
+          ) : null}
 
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full bg-accent hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed text-[#04121c] font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full rounded-md bg-accent hover:bg-accent-soft disabled:opacity-60 text-white font-semibold py-3 flex items-center justify-center gap-2 transition-colors"
           >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Сохранение
-              </>
-            ) : (
-              'Включить защиту'
-            )}
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            Включить защиту
           </button>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-xs font-medium text-white/45">{label}</span>
+      {children}
+    </label>
   )
 }

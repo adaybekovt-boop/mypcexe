@@ -9,6 +9,7 @@ import electronUpdaterPkg from 'electron-updater'
 
 const { autoUpdater } = electronUpdaterPkg
 const isDev = !app.isPackaged
+const isBackgroundStart = process.argv.includes('--background') || process.argv.includes('--hidden')
 
 const iconPath = isDev
   ? join(app.getAppPath(), 'build/icon.png')
@@ -203,7 +204,7 @@ async function startPolling(config: Config) {
 
 function registerAutostart(exePath: string) {
   try {
-    const cmd = `schtasks /create /f /tn "myPC_Agent" /tr "\\"${exePath}\\"" /sc onlogon /rl highest /delay 0000:30`
+    const cmd = `schtasks /create /f /tn "myPC_Agent" /tr "\\"${exePath}\\" --background" /sc onlogon /rl highest`
     execSync(cmd, { windowsHide: true })
   } catch {
     // May fail without admin rights.
@@ -238,7 +239,7 @@ function setAutostart(enabled: boolean): { enabled: boolean; message: string } {
       if (!isAutostartEnabled()) {
         return { enabled: false, message: 'Не удалось включить автозапуск. Запустите myPC от имени администратора.' }
       }
-      return { enabled: true, message: 'Автозапуск включён. myPC будет запускаться при входе в систему.' }
+      return { enabled: true, message: 'Автозапуск включён. myPC будет запускаться сразу и в фоне.' }
     }
 
     execSync('schtasks /delete /f /tn "myPC_Agent"', { windowsHide: true })
@@ -582,8 +583,10 @@ app.whenReady().then(async () => {
   if (!config) {
     createAppWindow('setup')
   } else {
-    await startPolling(ensureDeviceSecret(config))
-    createAppWindow('dashboard')
+    const current = ensureDeviceSecret(config)
+    if (!isDev) registerAutostart(app.getPath('exe'))
+    await startPolling(current)
+    if (!isBackgroundStart) createAppWindow('dashboard')
   }
 })
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Loader2, LockKeyhole } from 'lucide-react'
 import { clsx } from 'clsx'
 
 export default function LockScreen() {
@@ -18,7 +18,7 @@ export default function LockScreen() {
 
   const triggerShake = () => {
     setShake(true)
-    setTimeout(() => setShake(false), 500)
+    setTimeout(() => setShake(false), 450)
   }
 
   const handleUnlock = async () => {
@@ -52,82 +52,66 @@ export default function LockScreen() {
   }
 
   return (
-    <div className="fixed inset-0 bg-base bg-grid flex items-center justify-center overflow-hidden">
-      {/* Ambient glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full bg-accent/[0.06] blur-[120px] pointer-events-none" />
-
-      <div
-        className={clsx(
-          'relative z-10 w-[420px] flex flex-col items-center text-center animate-fade-up',
-          shake && 'animate-shake'
-        )}
-      >
-        {/* Big shield */}
-        <div className="w-24 h-24 rounded-3xl bg-accent/10 flex items-center justify-center shadow-glow mb-6">
-          <ShieldCheck className="w-12 h-12 text-accent" strokeWidth={1.6} />
-        </div>
-
-        <h1 className="text-2xl font-semibold text-white tracking-tight">Компьютер защищён</h1>
-        <p className="text-sm text-white/40 mt-2 mb-9">Введите пароль, чтобы продолжить работу</p>
-
-        {/* Password field — systemic */}
-        <div className="w-full max-w-[320px] space-y-3">
-          <div className="relative">
-            <input
-              ref={inputRef}
-              type={showPass ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value)
-                setError('')
-              }}
-              onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
-              placeholder="Пароль"
-              className={clsx(
-                'w-full bg-surface/80 border rounded-2xl px-5 py-4 pr-20 text-base text-white placeholder:text-white/25 outline-none transition-all text-center tracking-[0.2em]',
-                error
-                  ? 'border-danger/60 focus:border-danger'
-                  : 'border-hair focus:border-accent/50 focus:bg-surface'
-              )}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPass((p) => !p)}
-              className="absolute right-14 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-            >
-              {showPass ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
-            </button>
-            <button
-              onClick={handleUnlock}
-              disabled={!password || checking}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-accent hover:bg-accent-deep disabled:opacity-30 disabled:cursor-not-allowed text-[#04121c] flex items-center justify-center transition-colors"
-            >
-              {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-            </button>
+    <div className="fixed inset-0 bg-base flex items-center justify-center">
+      <div className={clsx('w-[380px] rounded-lg border border-line bg-surface p-6 shadow-2xl', shake && 'animate-shake')}>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-11 h-11 rounded-lg bg-white/[0.05] flex items-center justify-center">
+            <LockKeyhole className="w-5 h-5 text-accent" />
           </div>
-
-          <div className="h-5">
-            {error && <p className="text-sm text-danger animate-fade-up">{error}</p>}
+          <div>
+            <h1 className="text-lg font-semibold text-white">Компьютер заблокирован</h1>
+            <p className="text-sm text-white/45 mt-0.5">Введите пароль myPC</p>
           </div>
         </div>
 
-        {/* Recovery */}
-        <div className="mt-6">
+        <div className="relative">
+          <input
+            ref={inputRef}
+            type={showPass ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              setError('')
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
+            placeholder="Пароль"
+            className={clsx(
+              'w-full rounded-md bg-base border px-3 py-3 pr-20 text-sm text-white placeholder:text-white/25 outline-none',
+              error ? 'border-danger focus:border-danger' : 'border-line focus:border-accent'
+            )}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPass((value) => !value)}
+            className="absolute right-11 top-1/2 -translate-y-1/2 w-7 h-7 text-white/40 hover:text-white"
+          >
+            {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+          <button
+            onClick={handleUnlock}
+            disabled={!password || checking}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md bg-accent hover:bg-accent-soft disabled:opacity-35 text-white flex items-center justify-center"
+          >
+            {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+          </button>
+        </div>
+
+        <div className="h-6 mt-2">
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+        </div>
+
+        <div className="pt-3 border-t border-line flex items-center justify-between">
+          <span className="text-xs text-white/35">Восстановление через Telegram</span>
           {codeSent ? (
-            <p className="text-sm text-ok">Код восстановления отправлен в Telegram</p>
+            <span className="text-xs text-ok">Код отправлен</span>
           ) : (
             <button
               onClick={handleForgot}
               disabled={sendingCode}
-              className="text-[13px] text-white/30 hover:text-white/55 transition-colors disabled:opacity-50 flex items-center gap-1.5 mx-auto"
+              className="text-xs text-accent hover:text-white disabled:text-white/30 flex items-center gap-1.5"
             >
-              {sendingCode ? (
-                <>
-                  <Loader2 className="w-3 h-3 animate-spin" /> Отправка кода
-                </>
-              ) : (
-                'Восстановление через Telegram'
-              )}
+              {sendingCode ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              Получить код
             </button>
           )}
         </div>

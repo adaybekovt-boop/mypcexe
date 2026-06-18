@@ -1,30 +1,27 @@
 import { useEffect, useState } from 'react'
 import {
-  ChevronDown,
+  CheckCircle2,
   Copy,
   Eye,
   EyeOff,
   Loader2,
-  Lock,
+  LockKeyhole,
   Power,
-  RefreshCcw,
-  Send,
-  Settings2,
-  Shield,
+  RefreshCw,
+  Settings,
+  Smartphone,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import TopBar from '../components/TopBar'
 import PairingOverlay from '../components/PairingOverlay'
-
-type Health = 'ok' | 'warn' | 'danger'
 
 export default function Dashboard() {
   const [config, setConfig] = useState<MyPcConfigView | null>(null)
   const [serverUrl, setServerUrl] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [pairing, setPairing] = useState<MyPcPairingCode | null>(null)
   const [pairingLoading, setPairingLoading] = useState(false)
   const [updateLoading, setUpdateLoading] = useState(false)
@@ -64,7 +61,7 @@ export default function Dashboard() {
       })
       setConfig(updated)
       setPassword('')
-      toast('Сохранено')
+      toast('Настройки сохранены')
     } catch (e: any) {
       toast(e?.message ?? 'Ошибка сохранения')
     }
@@ -108,223 +105,184 @@ export default function Dashboard() {
 
   if (!config) {
     return (
-      <div className="h-full bg-base flex items-center justify-center text-white/40">
+      <div className="h-full bg-base flex items-center justify-center text-white/45">
         <Loader2 className="w-5 h-5 animate-spin mr-2" />
         Загрузка
       </div>
     )
   }
 
-  const health: Health = !config.protectionActive ? 'danger' : config.chatLinked ? 'ok' : 'warn'
-  const healthColor = { ok: 'bg-ok', warn: 'bg-warn', danger: 'bg-danger' }[health]
-  const healthText = { ok: 'Защита активна', warn: 'Привяжите Telegram', danger: 'Защита выключена' }[health]
-
   return (
-    <div className="relative flex flex-col h-full bg-base bg-grid">
+    <div className="relative h-full bg-base text-white flex flex-col">
       <TopBar version={config.appVersion} onCheckUpdates={checkUpdates} updating={updateLoading} />
 
-      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
-        {/* Hero */}
-        <div className="flex flex-col items-center text-center animate-fade-up">
-          <div className="relative mb-3">
-            <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center shadow-glow">
-              <Shield className="w-8 h-8 text-accent" />
+      <main className="flex-1 overflow-y-auto p-5 space-y-4">
+        <section className="rounded-lg border border-line bg-surface p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className={clsx('w-2 h-2 rounded-full', config.protectionActive ? 'bg-ok' : 'bg-danger')} />
+                <h1 className="text-lg font-semibold">{config.protectionActive ? 'Защита активна' : 'Защита выключена'}</h1>
+              </div>
+              <p className="text-sm text-white/45 mt-1">Фоновый агент запущен</p>
+            </div>
+            <div className="text-right text-xs text-white/40">
+              <div>Версия {config.appVersion}</div>
+              <button onClick={checkUpdates} className="mt-1 text-accent hover:text-white">
+                Проверить обновления
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={clsx('w-2 h-2 rounded-full', healthColor, health === 'ok' && 'animate-pulse-ring')} />
-            <h1 className="text-lg font-semibold text-white">{healthText}</h1>
-          </div>
-          <p className="text-[13px] text-white/35 mt-1">Agent работает в фоне</p>
-        </div>
+        </section>
 
-        {/* Status blocks */}
-        <div className="space-y-2 animate-fade-up">
+        <section className="grid grid-cols-1 gap-2">
           <StatusRow
-            icon={<Send className="w-[18px] h-[18px]" />}
+            icon={<Smartphone className="w-4 h-4" />}
             label="Telegram"
             value={config.chatLinked ? 'Привязан' : 'Не привязан'}
-            tone={config.chatLinked ? 'ok' : 'warn'}
+            ok={config.chatLinked}
           />
-          <StatusRow
-            icon={<RefreshCcw className="w-[18px] h-[18px]" />}
-            label="Автообновление"
-            value="Включено"
-            tone="ok"
-          />
-          <StatusRow
-            icon={<Lock className="w-[18px] h-[18px]" />}
-            label="Блокировка Windows"
-            value="Активна"
-            tone="ok"
-          />
-        </div>
+          <StatusRow icon={<RefreshCw className="w-4 h-4" />} label="Автообновление" value="Включено" ok />
+          <StatusRow icon={<LockKeyhole className="w-4 h-4" />} label="Блокировка Windows" value="Готова" ok />
+        </section>
 
-        {/* Autostart toggle */}
-        <button
-          onClick={toggleAutostart}
-          disabled={autostartBusy}
-          className={clsx(
-            'w-full flex items-center gap-3 rounded-xl px-4 py-3 border transition-colors text-left disabled:opacity-60 animate-fade-up',
-            config.autostartEnabled ? 'bg-accent/[0.07] border-accent/25' : 'bg-surface border-hair hover:bg-white/[0.04]'
-          )}
-        >
-          <div
-            className={clsx(
-              'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
-              config.autostartEnabled ? 'bg-accent/15 text-accent' : 'bg-white/[0.04] text-white/40'
-            )}
-          >
-            <Power className="w-[18px] h-[18px]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white">Запуск при старте системы</p>
-            <p className="text-xs text-white/35">{config.autostartEnabled ? 'Включено' : 'Выключено'}</p>
-          </div>
-          {autostartBusy ? (
-            <Loader2 className="w-4 h-4 animate-spin text-white/40 shrink-0" />
-          ) : (
-            <Toggle on={config.autostartEnabled} />
-          )}
-        </button>
-
-        {/* Primary action: pairing */}
         <button
           onClick={createPairingCode}
           disabled={pairingLoading}
-          className="w-full bg-accent hover:bg-accent-deep disabled:opacity-60 text-base font-semibold text-[#04121c] py-3 rounded-xl transition-colors flex items-center justify-center gap-2 animate-fade-up"
+          className="w-full rounded-lg bg-accent hover:bg-accent-soft disabled:opacity-60 text-white font-semibold py-3 flex items-center justify-center gap-2 transition-colors"
         >
-          {pairingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          Получить код
+          {pairingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Smartphone className="w-4 h-4" />}
+          Получить код Telegram
         </button>
 
-        {/* Settings (collapsible) */}
-        <div className="animate-fade-up">
+        <section className="rounded-lg border border-line bg-surface">
           <button
-            onClick={() => setShowSettings((s) => !s)}
-            className="w-full flex items-center justify-between text-white/45 hover:text-white/70 transition-colors py-1"
+            onClick={toggleAutostart}
+            disabled={autostartBusy}
+            className="w-full p-4 flex items-center gap-3 text-left disabled:opacity-60"
           >
-            <span className="flex items-center gap-2 text-sm">
-              <Settings2 className="w-4 h-4" />
+            <Power className={clsx('w-5 h-5', config.autostartEnabled ? 'text-ok' : 'text-white/35')} />
+            <div className="flex-1">
+              <div className="text-sm font-medium">Запуск при входе в Windows</div>
+              <div className="text-xs text-white/45 mt-0.5">
+                {config.autostartEnabled ? 'Включён, стартует сразу и в фоне' : 'Выключен'}
+              </div>
+            </div>
+            {autostartBusy ? <Loader2 className="w-4 h-4 animate-spin text-white/45" /> : <Toggle on={config.autostartEnabled} />}
+          </button>
+        </section>
+
+        <section className="rounded-lg border border-line bg-surface">
+          <button
+            onClick={() => setShowSettings((v) => !v)}
+            className="w-full p-4 flex items-center justify-between text-left"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <Settings className="w-4 h-4 text-white/45" />
               Настройки
             </span>
-            <ChevronDown className={clsx('w-4 h-4 transition-transform', showSettings && 'rotate-180')} />
+            <span className="text-xs text-white/35">{showSettings ? 'Скрыть' : 'Открыть'}</span>
           </button>
 
-          {showSettings && (
-            <div className="space-y-3 pt-3 animate-fade-up">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-white/40 uppercase tracking-wider">ID устройства</label>
-                <div className="flex items-center gap-2 bg-surface rounded-xl px-4 py-2.5 border border-hair">
-                  <span className="flex-1 font-mono text-sm text-accent font-semibold tracking-widest">
+          {showSettings ? (
+            <div className="border-t border-line p-4 space-y-3">
+              <Field label="ID устройства">
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded-md bg-base border border-line px-3 py-2 font-mono text-sm text-accent tracking-widest">
                     {config.deviceCode}
-                  </span>
+                  </code>
                   <button
                     onClick={() => copy(config.deviceCode)}
-                    className="p-1.5 rounded-lg hover:bg-white/[0.07] transition-colors text-white/40 hover:text-white"
+                    className="w-9 h-9 rounded-md border border-line text-white/55 hover:text-white hover:bg-white/[0.05] flex items-center justify-center"
                   >
-                    <Copy className="w-3.5 h-3.5" />
+                    <Copy className="w-4 h-4" />
                   </button>
                 </div>
-              </div>
+              </Field>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-white/40 uppercase tracking-wider">URL сервера</label>
+              <Field label="URL сервера">
                 <input
                   type="url"
                   value={serverUrl}
                   onChange={(e) => setServerUrl(e.target.value)}
-                  className="w-full bg-surface border border-hair rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/20 outline-none focus:border-accent/40 transition-colors"
+                  className="w-full rounded-md bg-base border border-line px-3 py-2 text-sm text-white outline-none focus:border-accent"
                 />
-              </div>
+              </Field>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-white/40 uppercase tracking-wider">Новый пароль</label>
+              <Field label="Новый пароль">
                 <div className="relative">
                   <input
                     type={showPass ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Не меняется"
-                    className="w-full bg-surface border border-hair rounded-xl px-4 py-2.5 pr-11 text-sm text-white placeholder:text-white/20 outline-none focus:border-accent/40 transition-colors"
+                    placeholder="Оставьте пустым, чтобы не менять"
+                    className="w-full rounded-md bg-base border border-line px-3 py-2 pr-10 text-sm text-white placeholder:text-white/25 outline-none focus:border-accent"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPass((p) => !p)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/30 hover:text-white/60 transition-colors"
+                    onClick={() => setShowPass((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 text-white/40 hover:text-white"
                   >
                     {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-              </div>
+              </Field>
 
               <button
                 onClick={save}
                 disabled={saving}
-                className="w-full bg-white/[0.06] hover:bg-white/[0.1] border border-hair disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                className="w-full rounded-md border border-line bg-white/[0.04] hover:bg-white/[0.08] disabled:opacity-60 py-2.5 text-sm font-medium flex items-center justify-center gap-2"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Сохранить
+                Сохранить настройки
               </button>
             </div>
-          )}
-        </div>
-      </div>
+          ) : null}
+        </section>
+      </main>
 
-      {/* Toast */}
-      {message && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-surface border border-hair text-white/80 text-sm rounded-xl px-4 py-2.5 shadow-lg animate-fade-up z-20">
+      {message ? (
+        <div className="absolute left-4 right-4 bottom-4 rounded-lg border border-line bg-surface2 px-4 py-3 text-sm text-white/85 shadow-xl">
           {message}
         </div>
-      )}
+      ) : null}
 
-      {/* Pairing overlay */}
-      {pairing && (
+      {pairing ? (
         <PairingOverlay
           code={pairing.code}
           expiresAt={pairing.expiresAt}
           initiallyLinked={config.chatLinked}
           onClose={() => setPairing(null)}
-          onLinked={() => setConfig((c) => (c ? { ...c, chatLinked: true } : c))}
+          onLinked={() => setConfig((current) => (current ? { ...current, chatLinked: true } : current))}
         />
-      )}
+      ) : null}
     </div>
   )
 }
 
-// ── Small building blocks ──────────────────────────────────────────────────
-
-function StatusRow({
-  icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-  tone: 'ok' | 'warn' | 'danger'
-}) {
-  const dot = { ok: 'bg-ok', warn: 'bg-warn', danger: 'bg-danger' }[tone]
-  const text = { ok: 'text-ok', warn: 'text-warn', danger: 'text-danger' }[tone]
+function StatusRow({ icon, label, value, ok }: { icon: React.ReactNode; label: string; value: string; ok: boolean }) {
   return (
-    <div className="flex items-center gap-3 bg-surface border border-hair rounded-xl px-4 py-3">
-      <div className="text-white/40 shrink-0">{icon}</div>
+    <div className="rounded-lg border border-line bg-surface px-4 py-3 flex items-center gap-3">
+      <span className="text-white/40">{icon}</span>
       <span className="flex-1 text-sm text-white/80">{label}</span>
-      <span className={clsx('flex items-center gap-2 text-sm font-medium', text)}>
-        <span className={clsx('w-1.5 h-1.5 rounded-full', dot)} />
-        {value}
-      </span>
+      <span className={clsx('text-sm font-medium', ok ? 'text-ok' : 'text-warn')}>{value}</span>
     </div>
+  )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-xs font-medium text-white/45">{label}</span>
+      {children}
+    </label>
   )
 }
 
 function Toggle({ on }: { on: boolean }) {
   return (
-    <span className={clsx('relative w-10 h-6 rounded-full transition-colors shrink-0', on ? 'bg-accent' : 'bg-white/15')}>
-      <span
-        className={clsx('absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all', on ? 'left-[18px]' : 'left-0.5')}
-      />
+    <span className={clsx('relative w-9 h-5 rounded-full transition-colors', on ? 'bg-ok' : 'bg-white/20')}>
+      <span className={clsx('absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all', on ? 'left-[18px]' : 'left-0.5')} />
     </span>
   )
 }
