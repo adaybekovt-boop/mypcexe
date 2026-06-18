@@ -14,11 +14,30 @@ html,
 body,
 #root {
   height: 100%;
-  background: #101318;
+  background: #050505;
   color: #ffffff;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   user-select: none;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.36;
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(255,255,255,0.055) 0 1px, transparent 1px),
+    radial-gradient(circle at 80% 70%, rgba(255,255,255,0.035) 0 1px, transparent 1px);
+  background-size: 3px 3px, 5px 5px;
+  mix-blend-mode: screen;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 input,

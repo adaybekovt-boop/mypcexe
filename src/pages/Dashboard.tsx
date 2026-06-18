@@ -128,7 +128,7 @@ export default function Dashboard() {
             </div>
             <div className="text-right text-xs text-white/40">
               <div>Версия {config.appVersion}</div>
-              <button onClick={checkUpdates} className="mt-1 text-accent hover:text-white">
+              <button onClick={checkUpdates} className="mt-1 text-white/65 hover:text-white">
                 Проверить обновления
               </button>
             </div>
@@ -149,7 +149,7 @@ export default function Dashboard() {
         <button
           onClick={createPairingCode}
           disabled={pairingLoading}
-          className="w-full rounded-lg bg-accent hover:bg-accent-soft disabled:opacity-60 text-white font-semibold py-3 flex items-center justify-center gap-2 transition-colors"
+          className="w-full rounded-lg bg-accent hover:bg-accent-soft disabled:opacity-60 text-black font-semibold py-3 flex items-center justify-center gap-2 transition-colors"
         >
           {pairingLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Smartphone className="w-4 h-4" />}
           Получить код Telegram
@@ -188,7 +188,7 @@ export default function Dashboard() {
             <div className="border-t border-line p-4 space-y-3">
               <Field label="ID устройства">
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 rounded-md bg-base border border-line px-3 py-2 font-mono text-sm text-accent tracking-widest">
+                  <code className="flex-1 rounded-md bg-base border border-line px-3 py-2 font-mono text-sm text-white tracking-widest">
                     {config.deviceCode}
                   </code>
                   <button

@@ -4,15 +4,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        base: '#101318',
-        surface: '#171B22',
-        surface2: '#1D232C',
-        line: 'rgba(255,255,255,0.08)',
-        accent: '#4EA3FF',
-        'accent-soft': '#1F6FEB',
-        ok: '#3FB950',
-        warn: '#D29922',
-        danger: '#F85149',
+        base: '#050505',
+        surface: '#0D0D0E',
+        surface2: '#151515',
+        line: 'rgba(255,255,255,0.10)',
+        accent: '#F5F5F5',
+        'accent-soft': '#D8D8D8',
+        ok: '#F2F2F2',
+        warn: '#B8B8B8',
+        danger: '#E6E6E6',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

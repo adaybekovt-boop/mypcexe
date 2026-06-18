@@ -54,7 +54,7 @@ export default function Setup() {
         <section className="rounded-lg border border-line bg-surface p-5 space-y-5">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-lg bg-white/[0.05] flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-accent" />
+              <ShieldCheck className="w-5 h-5 text-white/80" />
             </div>
             <div>
               <h1 className="text-lg font-semibold text-white">Настройка myPC</h1>
@@ -64,7 +64,7 @@ export default function Setup() {
 
           <Field label="ID устройства">
             <div className="flex items-center gap-2">
-              <code className="flex-1 rounded-md bg-base border border-line px-3 py-2.5 font-mono text-sm text-accent tracking-widest">
+              <code className="flex-1 rounded-md bg-base border border-line px-3 py-2.5 font-mono text-sm text-white tracking-widest">
                 {deviceCode}
               </code>
               <button
@@ -138,7 +138,7 @@ export default function Setup() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full rounded-md bg-accent hover:bg-accent-soft disabled:opacity-60 text-white font-semibold py-3 flex items-center justify-center gap-2 transition-colors"
+            className="w-full rounded-md bg-accent hover:bg-accent-soft disabled:opacity-60 text-black font-semibold py-3 flex items-center justify-center gap-2 transition-colors"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Включить защиту

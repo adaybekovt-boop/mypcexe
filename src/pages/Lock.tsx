@@ -56,7 +56,7 @@ export default function LockScreen() {
       <div className={clsx('w-[380px] rounded-lg border border-line bg-surface p-6 shadow-2xl', shake && 'animate-shake')}>
         <div className="flex items-center gap-3 mb-6">
           <div className="w-11 h-11 rounded-lg bg-white/[0.05] flex items-center justify-center">
-            <LockKeyhole className="w-5 h-5 text-accent" />
+            <LockKeyhole className="w-5 h-5 text-white/80" />
           </div>
           <div>
             <h1 className="text-lg font-semibold text-white">Компьютер заблокирован</h1>
@@ -90,7 +90,7 @@ export default function LockScreen() {
           <button
             onClick={handleUnlock}
             disabled={!password || checking}
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md bg-accent hover:bg-accent-soft disabled:opacity-35 text-white flex items-center justify-center"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-md bg-accent hover:bg-accent-soft disabled:opacity-35 text-black flex items-center justify-center"
           >
             {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
           </button>
@@ -108,7 +108,7 @@ export default function LockScreen() {
             <button
               onClick={handleForgot}
               disabled={sendingCode}
-              className="text-xs text-accent hover:text-white disabled:text-white/30 flex items-center gap-1.5"
+              className="text-xs text-white/65 hover:text-white disabled:text-white/30 flex items-center gap-1.5"
             >
               {sendingCode ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
               Получить код

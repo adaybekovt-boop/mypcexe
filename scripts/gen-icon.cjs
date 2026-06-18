@@ -1,16 +1,16 @@
 // Generates a placeholder build/icon.ico (256x256) with no external deps.
-// Design: dark rounded badge + accent shield + white keyhole.
+// Design: dark rounded badge + silver shield + black keyhole.
 // Replace build/icon.ico with your own 256x256 icon anytime.
 const zlib = require('zlib')
 const fs = require('fs')
 const path = require('path')
 
 const SIZE = 256
-const ACCENT = [56, 189, 248]     // #38BDF8 calm cyan
-const ACCENT_DEEP = [14, 165, 233] // #0EA5E9
-const BG = [11, 15, 20]           // #0B0F14 graphite
-const BADGE = [18, 24, 33]        // #121821
-const WHITE = [245, 245, 245]
+const ACCENT = [245, 245, 245]
+const ACCENT_DEEP = [170, 170, 170]
+const BG = [5, 5, 5]
+const BADGE = [18, 18, 18]
+const WHITE = [12, 12, 12]
 
 function lerp(a, b, t) {
   return [
