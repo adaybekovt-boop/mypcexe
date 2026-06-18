@@ -23,6 +23,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkForUpdates: (): Promise<{ status: string; message: string }> =>
     ipcRenderer.invoke('check-for-updates'),
 
+  getAutostart: (): Promise<boolean> =>
+    ipcRenderer.invoke('get-autostart'),
+
+  setAutostart: (enabled: boolean): Promise<{ enabled: boolean; message: string }> =>
+    ipcRenderer.invoke('set-autostart', enabled),
+
   getPairingCode: (): Promise<{ code: string; expiresAt: number }> =>
     ipcRenderer.invoke('get-pairing-code'),
 
@@ -34,4 +40,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   minimize: (): void =>
     ipcRenderer.send('minimize-window'),
+
+  hideToTray: (): void =>
+    ipcRenderer.send('hide-window'),
 })

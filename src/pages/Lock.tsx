@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Eye, EyeOff, KeyRound, Loader2, Lock } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { clsx } from 'clsx'
 
 export default function LockScreen() {
@@ -34,7 +34,7 @@ export default function LockScreen() {
         inputRef.current?.focus()
       }
     } catch {
-      setError('Ошибка - попробуйте еще раз')
+      setError('Ошибка, попробуйте снова')
     }
     setChecking(false)
   }
@@ -52,109 +52,86 @@ export default function LockScreen() {
   }
 
   return (
-    <div className="fixed inset-0 bg-base flex items-center justify-center">
-      <div
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',
-          backgroundSize: '32px 32px',
-        }}
-      />
+    <div className="fixed inset-0 bg-base bg-grid flex items-center justify-center overflow-hidden">
+      {/* Ambient glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full bg-accent/[0.06] blur-[120px] pointer-events-none" />
 
-      <div className={clsx(
-        'relative z-10 w-[400px] bg-surface rounded-2xl p-8 shadow-2xl border border-white/5 space-y-6 transition-transform',
-        shake && 'animate-shake'
-      )}>
-        <div className="flex flex-col items-center gap-3 pb-2">
-          <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center">
-            <Lock className="w-8 h-8 text-accent" />
-          </div>
-          <div className="text-center">
-            <h2 className="text-lg font-semibold text-white">Компьютер заблокирован</h2>
-            <p className="text-sm text-white/40 mt-1">Введите пароль для разблокировки</p>
-          </div>
+      <div
+        className={clsx(
+          'relative z-10 w-[420px] flex flex-col items-center text-center animate-fade-up',
+          shake && 'animate-shake'
+        )}
+      >
+        {/* Big shield */}
+        <div className="w-24 h-24 rounded-3xl bg-accent/10 flex items-center justify-center shadow-glow mb-6">
+          <ShieldCheck className="w-12 h-12 text-accent" strokeWidth={1.6} />
         </div>
 
-        <div className="space-y-3">
+        <h1 className="text-2xl font-semibold text-white tracking-tight">Компьютер защищён</h1>
+        <p className="text-sm text-white/40 mt-2 mb-9">Введите пароль, чтобы продолжить работу</p>
+
+        {/* Password field — systemic */}
+        <div className="w-full max-w-[320px] space-y-3">
           <div className="relative">
             <input
               ref={inputRef}
               type={showPass ? 'text' : 'password'}
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setError('') }}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                setError('')
+              }}
               onKeyDown={(e) => e.key === 'Enter' && handleUnlock()}
-              placeholder="Введите пароль"
+              placeholder="Пароль"
               className={clsx(
-                'w-full bg-base border rounded-xl px-4 py-4 pr-12 text-base text-white placeholder:text-white/20 outline-none transition-colors text-center tracking-widest',
-                error ? 'border-red-500/60 focus:border-red-500' : 'border-white/10 focus:border-accent/60'
+                'w-full bg-surface/80 border rounded-2xl px-5 py-4 pr-20 text-base text-white placeholder:text-white/25 outline-none transition-all text-center tracking-[0.2em]',
+                error
+                  ? 'border-danger/60 focus:border-danger'
+                  : 'border-hair focus:border-accent/50 focus:bg-surface'
               )}
             />
             <button
               type="button"
               onClick={() => setShowPass((p) => !p)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+              className="absolute right-14 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
             >
-              {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showPass ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
+            </button>
+            <button
+              onClick={handleUnlock}
+              disabled={!password || checking}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-accent hover:bg-accent-deep disabled:opacity-30 disabled:cursor-not-allowed text-[#04121c] flex items-center justify-center transition-colors"
+            >
+              {checking ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
             </button>
           </div>
 
-          {error && (
-            <p className="text-sm text-red-400 text-center">{error}</p>
-          )}
+          <div className="h-5">
+            {error && <p className="text-sm text-danger animate-fade-up">{error}</p>}
+          </div>
         </div>
 
-        <button
-          onClick={handleUnlock}
-          disabled={!password || checking}
-          className="w-full bg-accent hover:bg-accent/80 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2"
-        >
-          {checking ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Проверка...
-            </>
-          ) : (
-            <>
-              <KeyRound className="w-4 h-4" />
-              Разблокировать
-            </>
-          )}
-        </button>
-
-        <div className="text-center space-y-1">
+        {/* Recovery */}
+        <div className="mt-6">
           {codeSent ? (
-            <p className="text-sm text-green-400">
-              Код восстановления отправлен в Telegram
-            </p>
+            <p className="text-sm text-ok">Код восстановления отправлен в Telegram</p>
           ) : (
             <button
               onClick={handleForgot}
               disabled={sendingCode}
-              className="text-sm text-white/30 hover:text-white/60 transition-colors disabled:opacity-50 flex items-center gap-1.5 mx-auto"
+              className="text-[13px] text-white/30 hover:text-white/55 transition-colors disabled:opacity-50 flex items-center gap-1.5 mx-auto"
             >
               {sendingCode ? (
-                <><Loader2 className="w-3 h-3 animate-spin" /> Отправка кода...</>
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" /> Отправка кода
+                </>
               ) : (
-                'Забыл пароль'
+                'Восстановление через Telegram'
               )}
             </button>
           )}
-          {codeSent && (
-            <p className="text-xs text-white/30">Введите полученный код в поле пароля</p>
-          )}
         </div>
       </div>
-
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          20% { transform: translateX(-8px); }
-          40% { transform: translateX(8px); }
-          60% { transform: translateX(-8px); }
-          80% { transform: translateX(4px); }
-        }
-        .animate-shake { animation: shake 0.5s ease; }
-      `}</style>
     </div>
   )
 }

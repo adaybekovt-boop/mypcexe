@@ -3,5 +3,6 @@ out/
 dist/win-unpacked/
 dist/builder-debug.yml
 *.log
+*.tsbuildinfo
 .env
 .DS_Store

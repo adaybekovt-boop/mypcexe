@@ -6,6 +6,7 @@ type MyPcConfigView = {
   serverUrl: string
   protectionActive: boolean
   chatLinked: boolean
+  autostartEnabled: boolean
   appVersion: string
 }
 
@@ -21,9 +22,12 @@ interface Window {
     getConfig(): Promise<MyPcConfigView>
     updateConfig(data: { password?: string; serverUrl: string }): Promise<MyPcConfigView>
     checkForUpdates(): Promise<{ status: string; message: string }>
+    getAutostart(): Promise<boolean>
+    setAutostart(enabled: boolean): Promise<{ enabled: boolean; message: string }>
     getPairingCode(): Promise<MyPcPairingCode>
     unlock(password: string): Promise<{ success: boolean }>
     forgotPassword(): Promise<void>
     minimize(): void
+    hideToTray(): void
   }
 }

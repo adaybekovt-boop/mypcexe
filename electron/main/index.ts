@@ -10,6 +10,10 @@ import electronUpdaterPkg from 'electron-updater'
 const { autoUpdater } = electronUpdaterPkg
 const isDev = !app.isPackaged
 
+const iconPath = isDev
+  ? join(app.getAppPath(), 'build/icon.png')
+  : join(process.resourcesPath, 'icon.png')
+
 app.disableHardwareAcceleration()
 
 const singleInstanceLock = app.requestSingleInstanceLock()
@@ -46,6 +50,7 @@ function currentConfigView() {
     serverUrl: config?.serverUrl ?? '',
     protectionActive: Boolean(config) && !isLocked,
     chatLinked: Boolean(chatId),
+    autostartEnabled: isAutostartEnabled(),
     appVersion: app.getVersion(),
   }
 }
@@ -199,9 +204,53 @@ async function startPolling(config: Config) {
 function registerAutostart(exePath: string) {
   try {
     const cmd = `schtasks /create /f /tn "myPC_Agent" /tr "\\"${exePath}\\"" /sc onlogon /rl highest /delay 0000:30`
-    execSync(cmd)
+    execSync(cmd, { windowsHide: true })
   } catch {
     // May fail without admin rights.
+  }
+}
+
+function isAutostartEnabled(): boolean {
+  if (process.platform !== 'win32') return false
+  try {
+    execSync('schtasks /query /tn "myPC_Agent"', { windowsHide: true, stdio: 'pipe' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+function setAutostart(enabled: boolean): { enabled: boolean; message: string } {
+  if (process.platform !== 'win32') {
+    return { enabled: false, message: 'Автозапуск доступен только в Windows.' }
+  }
+
+  if (isDev) {
+    return {
+      enabled: isAutostartEnabled(),
+      message: 'Автозапуск настраивается только в установленной версии myPC.',
+    }
+  }
+
+  try {
+    if (enabled) {
+      registerAutostart(app.getPath('exe'))
+      if (!isAutostartEnabled()) {
+        return { enabled: false, message: 'Не удалось включить автозапуск. Запустите myPC от имени администратора.' }
+      }
+      return { enabled: true, message: 'Автозапуск включён. myPC будет запускаться при входе в систему.' }
+    }
+
+    execSync('schtasks /delete /f /tn "myPC_Agent"', { windowsHide: true })
+    return { enabled: false, message: 'Автозапуск выключен.' }
+  } catch {
+    const state = isAutostartEnabled()
+    return {
+      enabled: state,
+      message: state
+        ? 'Не удалось выключить автозапуск. Запустите myPC от имени администратора.'
+        : 'Не удалось включить автозапуск. Запустите myPC от имени администратора.',
+    }
   }
 }
 
@@ -274,6 +323,7 @@ function createAppWindow(hash: 'setup' | 'dashboard' = 'dashboard') {
     frame: false,
     transparent: false,
     backgroundColor: '#0d0d0d',
+    icon: iconPath,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -398,7 +448,12 @@ function registerEmergencyHotkey() {
 }
 
 function createTray() {
-  const icon = nativeImage.createEmpty()
+  let icon = nativeImage.createFromPath(iconPath)
+  if (icon.isEmpty()) {
+    icon = nativeImage.createEmpty()
+  } else {
+    icon = icon.resize({ width: 16, height: 16 })
+  }
   tray = new Tray(icon)
   tray.setToolTip('myPC - защита активна')
   tray.setContextMenu(Menu.buildFromTemplate([
@@ -415,6 +470,10 @@ ipcMain.handle('get-device-code', () => getDeviceCode())
 ipcMain.handle('get-config', () => currentConfigView())
 
 ipcMain.handle('check-for-updates', () => checkForUpdatesNow())
+
+ipcMain.handle('get-autostart', () => isAutostartEnabled())
+
+ipcMain.handle('set-autostart', (_, enabled: boolean) => setAutostart(enabled))
 
 ipcMain.handle('save-config', async (_, data: { password: string; serverUrl: string }) => {
   const deviceCode = getDeviceCode()
@@ -508,6 +567,10 @@ ipcMain.handle('forgot-password', async () => {
 
 ipcMain.on('minimize-window', (e) => {
   BrowserWindow.fromWebContents(e.sender)?.minimize()
+})
+
+ipcMain.on('hide-window', (e) => {
+  BrowserWindow.fromWebContents(e.sender)?.hide()
 })
 
 app.whenReady().then(async () => {
